@@ -2,6 +2,7 @@ package bno055
 
 import (
 	"fmt"
+	"log"
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/i2c"
 	"time"
@@ -119,5 +120,6 @@ func (dev *Dev) ReadLinearAccel() ([3]float32, error) {
 
 func (dev *Dev) Halt() error {
 	// TODO power down / maybe save config
+	log.Println("Halted bno055.")
 	return nil
 }

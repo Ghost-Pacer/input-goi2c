@@ -5,8 +5,10 @@ import (
 	"github.com/Ghost-Pacer/input-goi2c/bno055"
 	"log"
 	"os"
+	"os/signal"
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/host/v3"
+	"syscall"
 	"time"
 )
 
@@ -33,45 +35,45 @@ func mainImpl() error {
 	if err != nil {
 		return err
 	}
+	defer bno.Halt()
 
 	ticker := time.NewTicker(RefreshInterval)
-	done := make(chan bool)
+	defer ticker.Stop()
 
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case <-ticker.C:
-				log.Print("ticked")
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	var caughtSignal os.Signal
 
-				quat, err := bno.ReadQuat()
-				if err != nil {
-					panic(err)
-				}
-				log.Print("\tgot quat", quat)
+Main:
+	for {
+		select {
+		case caughtSignal = <-signals:
+			break Main
+		case <-ticker.C:
+			log.Print("ticked")
 
-				eul, err := bno.ReadEuler()
-				if err != nil {
-					panic(err)
-				}
-				log.Print("\tgot eul", eul)
-
-				lin, err := bno.ReadLinearAccel()
-				if err != nil {
-					panic(err)
-				}
-				log.Print("\tgot lin", lin)
-
+			quat, err := bno.ReadQuat()
+			if err != nil {
+				return err
 			}
+			log.Print("\tgot quat", quat)
+
+			eul, err := bno.ReadEuler()
+			if err != nil {
+				return err
+			}
+			log.Print("\tgot eul", eul)
+
+			lin, err := bno.ReadLinearAccel()
+			if err != nil {
+				return err
+			}
+			log.Print("\tgot lin", lin)
+
 		}
-	}()
+	}
 
-	time.Sleep(10 * time.Second)
-	ticker.Stop()
-	done <- true
-	log.Println("Done")
-
+	log.Println("Caught", caughtSignal, "shutting down...")
 	return nil
 }
 
