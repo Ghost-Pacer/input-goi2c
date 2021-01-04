@@ -1,25 +1,28 @@
 package bno055
 
 import (
-	"fmt"
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/i2c"
 	"time"
 )
 
 const (
-	QuatScale        = float32(1 / (1 << 14))
-	EulerScale       = float32(1 / 16)
-	LinearAccelScale = float32(1 / 100)
-	ModeAddr         = 0x3D
-	ModeConfig       = 0x00
-	ModeNDOF         = 0x0C
+	ModeAddr   = 0x3D
+	ModeConfig = 0x00
+	ModeNDOF   = 0x0C
 )
 
+const (
+	QuatScale        = float32(1.0 / (1 << 14))
+	EulerScale       = float32(1.0 / 16)
+	LinearAccelScale = float32(1.0 / 100)
+)
+
+// addresses of LSBs, MSBs assumed +0x01
 var (
 	QuatAddrs        = [4]byte{0x20, 0x22, 0x24, 0x26}
 	EulerAddrs       = [3]byte{0x1A, 0x1C, 0x1E}
-	LinearAccelAddrs = [3]byte{0x28, 0x30, 0x32}
+	LinearAccelAddrs = [3]byte{0x28, 0x2A, 0x2C}
 )
 
 type Dev struct {
@@ -53,7 +56,7 @@ func (dev *Dev) readWord(addr byte) (int16, error) {
 	if err := dev.transport.Tx([]byte{addr}, buf); err != nil {
 		return 0, err
 	}
-	fmt.Printf("%x%x ", buf[0], buf[1])
+	// fmt.Printf("%x%x ", buf[0], buf[1])
 	return int16(buf[1])<<8 | int16(buf[0]), nil
 }
 
@@ -64,7 +67,8 @@ func (dev *Dev) readScaledWords(addrs []byte, scaleFactor float32) ([]float32, e
 		if err != nil {
 			return nil, err
 		}
-		out[i] = float32(unscaledWord) * scaleFactor
+		scaledValue := float32(unscaledWord) * scaleFactor
+		out[i] = scaledValue
 	}
 	return out, nil
 }

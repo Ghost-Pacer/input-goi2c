@@ -28,18 +28,6 @@ func mainImpl() error {
 	log.Println("Initted bus")
 	defer bus.Close()
 
-	/*dev := i2c.Dev{Bus: bus, Addr: I2CAddr}
-	log.Print("initted")
-
-	// _, err = bmxx80.NewI2C(bus, 0x78, &bmxx80.DefaultOpts)
-
-	buf_out := make([]byte, 1)
-	if err := dev.Tx([]byte{byte(0x00)}, buf_out); err != nil {
-		return err
-	}
-
-	log.Printf("0x%02X\n", buf_out[0])*/
-
 	bno, err := bno055.New(bus, I2CAddr)
 	log.Println("Initted bno055")
 	if err != nil {
@@ -55,11 +43,26 @@ func mainImpl() error {
 			case <-done:
 				return
 			case <-ticker.C:
+				log.Print("ticked")
+
 				quat, err := bno.ReadQuat()
 				if err != nil {
 					panic(err)
 				}
-				log.Print(quat)
+				log.Print("\tgot quat", quat)
+
+				eul, err := bno.ReadEuler()
+				if err != nil {
+					panic(err)
+				}
+				log.Print("\tgot eul", eul)
+
+				lin, err := bno.ReadLinearAccel()
+				if err != nil {
+					panic(err)
+				}
+				log.Print("\tgot lin", lin)
+
 			}
 		}
 	}()
@@ -73,6 +76,7 @@ func mainImpl() error {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	if err := mainImpl(); err != nil {
 		fmt.Fprintf(os.Stderr, "input-goi2c: %s.\n", err)
 		os.Exit(1)
