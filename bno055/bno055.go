@@ -1,15 +1,17 @@
 package bno055
 
 import (
+	"fmt"
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/i2c"
 	"time"
 )
 
 const (
-	ModeAddr   = 0x3D
-	ModeConfig = 0x00
-	ModeNDOF   = 0x0C
+	BNO055ChipIDWord = -1120 // 0xFB A0 interpreted as signed int16
+	ModeAddr         = 0x3D
+	ModeConfig       = 0x00
+	ModeNDOF         = 0x0C
 )
 
 const (
@@ -19,10 +21,10 @@ const (
 )
 
 // addresses of LSBs, MSBs assumed +0x01
-var (
-	QuatAddrs        = [4]byte{0x20, 0x22, 0x24, 0x26}
-	EulerAddrs       = [3]byte{0x1A, 0x1C, 0x1E}
-	LinearAccelAddrs = [3]byte{0x28, 0x2A, 0x2C}
+const (
+	QuatAddr        = 0x20
+	EulerAddr       = 0x1A
+	LinearAccelAddr = 0x28
 )
 
 type Dev struct {
@@ -44,6 +46,14 @@ func New(bus i2c.Bus, addr uint16) (*Dev, error) {
 	}
 	time.Sleep(20 * time.Millisecond)
 
+	chipID, err := dev.readWords(0x00, 1)
+	if err != nil {
+		return nil, err
+	}
+	if chipID[0] != BNO055ChipIDWord {
+		return nil, fmt.Errorf("expected chip ID %x but got %x", BNO055ChipIDWord, chipID)
+	}
+
 	return dev, nil
 }
 
@@ -51,31 +61,35 @@ func (dev *Dev) writeByte(addr byte, value byte) error {
 	return dev.transport.Tx([]byte{addr, value}, nil)
 }
 
-func (dev *Dev) readWord(addr byte) (int16, error) {
-	buf := make([]byte, 2)
-	if err := dev.transport.Tx([]byte{addr}, buf); err != nil {
-		return 0, err
+func (dev *Dev) readWords(startAddr byte, numWords int) ([]int16, error) {
+	buf := make([]byte, 2*numWords)
+	if err := dev.transport.Tx([]byte{startAddr}, buf); err != nil {
+		return nil, err
 	}
-	// fmt.Printf("%x%x ", buf[0], buf[1])
-	return int16(buf[1])<<8 | int16(buf[0]), nil
+	out := make([]int16, numWords)
+	for i := 0; i < numWords; i++ {
+		lsb := i * 2
+		msb := lsb + 1
+		out[i] = int16(buf[msb])<<8 | int16(buf[lsb])
+	}
+	return out, nil
 }
 
-func (dev *Dev) readScaledWords(addrs []byte, scaleFactor float32) ([]float32, error) {
-	out := make([]float32, len(addrs))
-	for i, addr := range addrs {
-		unscaledWord, err := dev.readWord(addr)
-		if err != nil {
-			return nil, err
-		}
-		scaledValue := float32(unscaledWord) * scaleFactor
-		out[i] = scaledValue
+func (dev *Dev) readScaledValues(startAddr byte, numWords int, scaleFactor float32) ([]float32, error) {
+	out := make([]float32, numWords)
+	unscaledWords, err := dev.readWords(startAddr, numWords)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < numWords; i++ {
+		out[i] = float32(unscaledWords[i]) * scaleFactor
 	}
 	return out, nil
 }
 
 func (dev *Dev) ReadQuat() ([4]float32, error) {
 	var dst [4]float32
-	src, err := dev.readScaledWords(QuatAddrs[:], QuatScale)
+	src, err := dev.readScaledValues(QuatAddr, 4, QuatScale)
 	if err != nil {
 		return [4]float32{}, err
 	}
@@ -85,7 +99,7 @@ func (dev *Dev) ReadQuat() ([4]float32, error) {
 
 func (dev *Dev) ReadEuler() ([3]float32, error) {
 	var dst [3]float32
-	src, err := dev.readScaledWords(EulerAddrs[:], EulerScale)
+	src, err := dev.readScaledValues(EulerAddr, 3, EulerScale)
 	if err != nil {
 		return [3]float32{}, err
 	}
@@ -95,7 +109,7 @@ func (dev *Dev) ReadEuler() ([3]float32, error) {
 
 func (dev *Dev) ReadLinearAccel() ([3]float32, error) {
 	var dst [3]float32
-	src, err := dev.readScaledWords(LinearAccelAddrs[:], LinearAccelScale)
+	src, err := dev.readScaledValues(LinearAccelAddr, 3, LinearAccelScale)
 	if err != nil {
 		return [3]float32{}, err
 	}
