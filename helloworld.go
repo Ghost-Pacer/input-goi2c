@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/Ghost-Pacer/input-goi2c/bno055"
 	"github.com/zeromq/goczmq"
 	"log"
@@ -71,9 +72,11 @@ Main:
 		case <-ticker.C:
 			printv("ticked")
 
+			start := time.Now()
 			if err := socket.SendFrame([]byte("hello world"), goczmq.FlagNone); err != nil {
 				panic(err)
 			}
+			fmt.Println("Raw time on zmq was %v", time.Since(start))
 			printv("\tsent on socket")
 
 			quat, err := bno.ReadQuat()
