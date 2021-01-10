@@ -1,8 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"flag"
 	"github.com/Ghost-Pacer/input-goi2c/bno055"
+	"github.com/go-zeromq/zmq4"
 	"log"
 	"os"
 	"os/signal"
@@ -12,32 +14,48 @@ import (
 	"time"
 )
 
-const (
-	I2CBus          = "2"
-	I2CAddr         = 0x28
-	RefreshInterval = 1000 * time.Millisecond
-)
+var I2CBus = flag.String("b", "2", "I2C bus")
+var I2CAddr = flag.Int("a", 0x28, "I2C address")
+var RefreshInterval = flag.Duration("r", 8*time.Millisecond, "refresh interval")
+var SocketEndpoint = flag.String("e", "tcp://localhost:51101", "ZMQ bound endpoint")
+var Verbose = flag.Bool("v", false, "print all sent messages (do not use in production)")
+
+func printv(vals ...interface{}) {
+	if *Verbose {
+		log.Println(vals...)
+	}
+}
 
 func mainImpl() error {
+	socket := zmq4.NewPub(context.Background())
+	defer socket.Close()
+	// socket.SetOption("CONFLATE", true)
+
+	if err := socket.Listen(*SocketEndpoint); err != nil {
+		return err
+	}
+	log.Println("2zmq: listening on", *SocketEndpoint)
+
 	if _, err := host.Init(); err != nil {
 		return err
 	}
+	log.Println("Periph: initted host")
 
-	bus, err := i2creg.Open(I2CBus)
+	bus, err := i2creg.Open(*I2CBus)
 	if err != nil {
 		return err
 	}
-	log.Println("Initted bus")
+	log.Println("Periph: initted bus")
 	defer bus.Close()
 
-	bno, err := bno055.New(bus, I2CAddr)
-	log.Println("Initted bno055")
+	bno, err := bno055.New(bus, uint16(*I2CAddr))
+	log.Println("GP: initted bno055")
 	if err != nil {
 		return err
 	}
 	defer bno.Halt()
 
-	ticker := time.NewTicker(RefreshInterval)
+	ticker := time.NewTicker(*RefreshInterval)
 	defer ticker.Stop()
 
 	signals := make(chan os.Signal, 1)
@@ -50,25 +68,30 @@ Main:
 		case caughtSignal = <-signals:
 			break Main
 		case <-ticker.C:
-			log.Print("ticked")
+			printv("ticked")
+
+			if err := socket.Send(zmq4.NewMsgString("hello world")); err != nil {
+				panic(err)
+			}
+			printv("\tsent on socket")
 
 			quat, err := bno.ReadQuat()
 			if err != nil {
 				return err
 			}
-			log.Print("\tgot quat", quat)
+			printv("\tgot quat", quat)
 
 			eul, err := bno.ReadEuler()
 			if err != nil {
 				return err
 			}
-			log.Print("\tgot eul", eul)
+			printv("\tgot eul", eul)
 
 			lin, err := bno.ReadLinearAccel()
 			if err != nil {
 				return err
 			}
-			log.Print("\tgot lin", lin)
+			printv("\tgot lin", lin)
 
 		}
 	}
@@ -78,9 +101,9 @@ Main:
 }
 
 func main() {
+	flag.Parse()
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	if err := mainImpl(); err != nil {
-		fmt.Fprintf(os.Stderr, "input-goi2c: %s.\n", err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }

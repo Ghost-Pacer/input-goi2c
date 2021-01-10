@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	BNO055ChipIDWord = -1120 // 0xFB A0 interpreted as signed int16
-	ModeAddr         = 0x3D
-	ModeConfig       = 0x00
-	ModeNDOF         = 0x0C
+	ChipIDWord = -1120 // 0xFB.A0 (registers 0x01.0x00) interpreted as signed int16
+	ModeAddr   = 0x3D
+	ModeConfig = 0x00
+	ModeNDOF   = 0x0C
 )
 
 const (
@@ -51,8 +51,8 @@ func New(bus i2c.Bus, addr uint16) (*Dev, error) {
 	if err != nil {
 		return nil, err
 	}
-	if chipID[0] != BNO055ChipIDWord {
-		return nil, fmt.Errorf("expected chip ID %x but got %x", BNO055ChipIDWord, chipID)
+	if chipID[0] != ChipIDWord {
+		return nil, fmt.Errorf("expected chip ID %x but got %x", ChipIDWord, chipID)
 	}
 
 	return dev, nil
