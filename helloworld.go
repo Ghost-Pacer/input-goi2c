@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"github.com/Ghost-Pacer/input-goi2c/bno055"
-	"github.com/go-zeromq/zmq4"
+	"github.com/zeromq/goczmq"
 	"log"
 	"os"
 	"os/signal"
@@ -27,14 +26,16 @@ func printv(vals ...interface{}) {
 }
 
 func mainImpl() error {
-	socket := zmq4.NewPub(context.Background())
-	defer socket.Close()
+	socket, err := goczmq.NewPub(*SocketEndpoint)
+	defer socket.Destroy()
+	//socket := zmq4.NewPub(context.Background())
+	//defer socket.Close()
 	// socket.SetOption("CONFLATE", true)
 
-	if err := socket.Listen(*SocketEndpoint); err != nil {
+	if err != nil {
 		return err
 	}
-	log.Println("2zmq: listening on", *SocketEndpoint)
+	log.Println("goczmq: listening on", *SocketEndpoint)
 
 	if _, err := host.Init(); err != nil {
 		return err
@@ -70,7 +71,7 @@ Main:
 		case <-ticker.C:
 			printv("ticked")
 
-			if err := socket.Send(zmq4.NewMsgString("hello world")); err != nil {
+			if err := socket.SendFrame([]byte("hello world"), goczmq.FlagNone); err != nil {
 				panic(err)
 			}
 			printv("\tsent on socket")
