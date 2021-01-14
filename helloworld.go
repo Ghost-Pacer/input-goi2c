@@ -1,10 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"fmt"
 	"github.com/Ghost-Pacer/input-goi2c/bno055"
-	"github.com/zeromq/goczmq"
+	"github.com/go-zeromq/zmq4"
 	"log"
 	"os"
 	"os/signal"
@@ -27,13 +27,12 @@ func printv(vals ...interface{}) {
 }
 
 func mainImpl() error {
-	socket, err := goczmq.NewPub(*SocketEndpoint)
-	defer socket.Destroy()
-	//socket := zmq4.NewPub(context.Background())
-	//defer socket.Close()
-	// socket.SetOption("CONFLATE", true)
-
-	if err != nil {
+	socket := zmq4.NewPub(context.Background())
+	defer socket.Close()
+	if err := socket.Listen(*SocketEndpoint); err != nil {
+		return err
+	}
+	if err := socket.SetOption("CONFLATE", true); err != nil {
 		return err
 	}
 	log.Println("goczmq: listening on", *SocketEndpoint)
@@ -73,12 +72,10 @@ Main:
 			printv("ticked")
 
 			start := time.Now()
-			if err := socket.SendFrame([]byte("hello world"), goczmq.FlagNone); err != nil {
-				panic(err)
+			if err := socket.Send(zmq4.NewMsg([]byte("Hello World"))); err != nil {
+				return err
 			}
-			fmt.Println("Raw time on zmq was %v", time.Since(start))
-
-			printv("\tsent on socket")
+			printv("\tsent on socket, raw time on zmq4 was", time.Since(start))
 
 			quat, err := bno.ReadQuat()
 			if err != nil {

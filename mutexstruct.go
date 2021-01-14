@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/cheekybits/genny/generic"
-	"gonum.org/v1/gonum/spatial/r3"
+	"gonum.org/v1/gonum/num/quat"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
-type Value generic.Type
+type ValueType generic.Type
 
 type EventTimings struct {
 	Sourced  time.Time
@@ -16,20 +17,20 @@ type EventTimings struct {
 	Accessed time.Time
 }
 
-type TimedValue struct {
-	value   Value
+type TimedValueType struct {
+	value   ValueType
 	timings EventTimings
 }
 
 type ValueSub interface {
-	EnsureReady(timeout time.Duration) error
-	Access() Value
-	AccessTimed() (Value, EventTimings)
+	EnsureReady(timeout time.Duration, interval time.Duration) error
+	Access() ValueType
+	AccessTimed() (ValueType, EventTimings)
 }
 
 type ValuePub interface {
-	Update(Value)
-	UpdateTimed(Value, time.Time)
+	Update(ValueType)
+	UpdateTimed(ValueType, time.Time)
 }
 
 /*
@@ -50,20 +51,16 @@ https://medium.com/i0exception/runtime-overhead-of-using-defer-in-go-7140d5c40e3
 */
 type MutexedValueTransport struct {
 	mutex   sync.RWMutex
-	value   Value
+	value   ValueType
 	timings EventTimings
-	ready chan bool
+	ready   chan bool
 }
 
 func (mvt *MutexedValueTransport) EnsureReady(timeout time.Duration) error {
-	select {
-	case <-time.After(timeout):
-		return fmt.Errorf("%v has passed but MutexedValueTransport was not ready", timeout)
-		case
-	}
+	panic("cannot ensure ready on MutexedValueTransport")
 }
 
-func (mvt *MutexedValueTransport) Access() Value {
+func (mvt *MutexedValueTransport) Access() ValueType {
 	mvt.mutex.RLock()
 
 	value := mvt.value
@@ -71,7 +68,7 @@ func (mvt *MutexedValueTransport) Access() Value {
 	return value
 }
 
-func (mvt *MutexedValueTransport) AccessTimed() (Value, EventTimings) {
+func (mvt *MutexedValueTransport) AccessTimed() (ValueType, EventTimings) {
 	mvt.mutex.RLock()
 
 	mvt.timings.Accessed = time.Now()
@@ -81,7 +78,7 @@ func (mvt *MutexedValueTransport) AccessTimed() (Value, EventTimings) {
 	return value, timings
 }
 
-func (mvt *MutexedValueTransport) Update(value Value) {
+func (mvt *MutexedValueTransport) Update(value ValueType) {
 	mvt.mutex.Lock()
 
 	mvt.value = value
@@ -89,7 +86,7 @@ func (mvt *MutexedValueTransport) Update(value Value) {
 	mvt.mutex.Unlock()
 }
 
-func (mvt *MutexedValueTransport) UpdateTimed(value Value, sourced time.Time) {
+func (mvt *MutexedValueTransport) UpdateTimed(value ValueType, sourced time.Time) {
 	mvt.mutex.Lock()
 
 	mvt.timings.Sourced = sourced
@@ -99,9 +96,54 @@ func (mvt *MutexedValueTransport) UpdateTimed(value Value, sourced time.Time) {
 	mvt.mutex.Unlock()
 }
 
+type AtomicValueTransport struct {
+	atom atomic.Value // of ValueType
+}
+
+func (avt *AtomicValueTransport) EnsureReady(timeout time.Duration, interval time.Duration) error {
+	timer := time.After(timeout)
+	for {
+		select {
+		case <-timer:
+			return fmt.Errorf("%v has passed but atom was never updated")
+		default:
+			if avt.atom.Load() != nil {
+				return nil
+			}
+			time.Sleep(interval)
+		}
+	}
+}
+
+func (avt *AtomicValueTransport) Access() ValueType {
+	return avt.atom.Load().(TimedValueType).value
+}
+
+func (avt *AtomicValueTransport) AccessTimed() (ValueType, EventTimings) {
+	timedValue := avt.atom.Load().(TimedValueType)
+	timedValue.timings.Accessed = time.Now()
+	return timedValue.value, timedValue.timings
+}
+
+func (avt *AtomicValueTransport) Update(value ValueType) {
+	avt.atom.Store(TimedValueType{
+		value: value,
+	})
+}
+
+func (avt *AtomicValueTransport) UpdateTimed(value ValueType, sourced time.Time) {
+	avt.atom.Store(TimedValueType{
+		value: value,
+		timings: EventTimings{
+			Sourced: sourced,
+			Updated: time.Now(),
+		},
+	})
+}
+
 type ChanneledValueTransport struct {
-	channel chan TimedValue
-	cache TimedValue
+	channel chan TimedValueType
+	cache   TimedValueType
 	timeout time.Duration
 }
 
@@ -109,6 +151,6 @@ func (cvt *ChanneledValueTransport) New(timeout time.Duration) {
 
 }
 
-func (cvt *ChanneledValueTransport) Access() Value {
+func (cvt *ChanneledValueTransport) Access() ValueType {
 
 }
