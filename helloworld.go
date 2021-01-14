@@ -73,6 +73,7 @@ Main:
 			if err := socket.Send(zmq4.NewMsgString("hello world")); err != nil {
 				panic(err)
 			}
+			time.Now()
 			printv("\tsent on socket")
 
 			quat, err := bno.ReadQuat()
