@@ -1,26 +1,26 @@
-package transport
+package main
 
 import (
 	"fmt"
+	"github.com/Ghost-Pacer/input-goi2c/transport"
 	"math/rand"
 	"os"
-	"testing"
 	"time"
 )
 
-func BenchmarkFloat64Transports_Access(b *testing.B) {
+func BenchmarkFloat64Transports_Access() {
 	done := make(chan bool)
-	var trans = new(AtomicFloat64Transport)
-	var sub = trans
+	var trans transport.AtomicFloat64Transport
+	var sub = &trans
 
-	go publishRandom(trans, done)
+	go publishRandom(&trans, done)
 
 	if err := sub.EnsureReady(time.Second, time.Millisecond); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
 
-	for n := 0; n < b.N; n++ {
+	for n := 0; n < 10000000; n++ {
 		_ = sub.Access()
 	}
 
@@ -28,7 +28,7 @@ func BenchmarkFloat64Transports_Access(b *testing.B) {
 }
 
 // NOTE receiver/pointer dynamics are weird, see https://play.golang.org/p/0Y0nuxEohuP
-func publishRandom(transport *AtomicFloat64Transport, done chan bool) {
+func publishRandom(transport *transport.AtomicFloat64Transport, done chan bool) {
 	ticker := time.NewTicker(100 * time.Microsecond)
 	for {
 		select {
@@ -42,4 +42,6 @@ func publishRandom(transport *AtomicFloat64Transport, done chan bool) {
 	}
 }
 
-// https://godbolt.org/z/8r8dqz
+func main() {
+	BenchmarkFloat64Transports_Access()
+}

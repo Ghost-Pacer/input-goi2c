@@ -13,6 +13,10 @@ type AtomicValueTypeTransport struct {
 	atom atomic.Value // of ValueType
 }
 
+func NewAtomicValueTypeTransport() *AtomicValueTypeTransport {
+	return &AtomicValueTypeTransport{}
+}
+
 func (avt *AtomicValueTypeTransport) EnsureReady(timeout time.Duration, interval time.Duration) error {
 	timer := time.After(timeout)
 	for {
