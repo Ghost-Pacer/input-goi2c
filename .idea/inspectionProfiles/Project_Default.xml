@@ -1,0 +1,41 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="GoUnhandledErrorResult" enabled="true" level="WARNING" enabled_by_default="true">
+      <functions>
+        <function importPath="fmt" name="Printf" />
+        <function importPath="fmt" name="Errorf" />
+        <function importPath="math/rand" name="Read" />
+        <function importPath="fmt" name="Println" />
+        <function importPath="fmt" name="Print" />
+        <function importPath="fmt" name="Fprintf" />
+      </functions>
+      <methods>
+        <method importPath="hash" receiver="Hash" name="Write" />
+        <method importPath="strings" receiver="*Builder" name="Write" />
+        <method importPath="strings" receiver="*Builder" name="WriteByte" />
+        <method importPath="bytes" receiver="*Buffer" name="WriteRune" />
+        <method importPath="bytes" receiver="*Buffer" name="Write" />
+        <method importPath="bytes" receiver="*Buffer" name="WriteString" />
+        <method importPath="strings" receiver="*Builder" name="WriteString" />
+        <method importPath="bytes" receiver="*Buffer" name="WriteByte" />
+        <method importPath="strings" receiver="*Builder" name="WriteRune" />
+        <method importPath="math/rand" receiver="*Rand" name="Read" />
+        <method importPath="periph.io/x/conn/v3/i2c" receiver="BusCloser" name="Close" />
+        <method importPath="github.com/Ghost-Pacer/input-goi2c/bno055" receiver="*Dev" name="Halt" />
+        <method importPath="github.com/go-zeromq/zmq4" receiver="Socket" name="Close" />
+      </methods>
+    </inspection_tool>
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="3">
+            <item index="0" class="java.lang.String" itemvalue="jinja2" />
+            <item index="1" class="java.lang.String" itemvalue="pytest-runner" />
+            <item index="2" class="java.lang.String" itemvalue="cython" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

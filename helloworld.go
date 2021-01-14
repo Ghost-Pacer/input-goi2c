@@ -77,6 +77,7 @@ Main:
 				panic(err)
 			}
 			fmt.Println("Raw time on zmq was %v", time.Since(start))
+
 			printv("\tsent on socket")
 
 			quat, err := bno.ReadQuat()
