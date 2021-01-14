@@ -12,7 +12,7 @@ import (
 func BenchmarkAtomicFloat64Transport_Access(b *testing.B) {
 	var intensityTransport AtomicFloat64Transport
 	done := make(chan bool)
-	go func() {
+	/*go func() {
 		// publisher
 		ticker := time.NewTicker((10 * physic.KiloHertz).Period())
 		for {
@@ -24,7 +24,8 @@ func BenchmarkAtomicFloat64Transport_Access(b *testing.B) {
 				return
 			}
 		}
-	}()
+	}()*/
+	go publishRandom(&intensityTransport, done)
 	if err := intensityTransport.EnsureReady(time.Second, time.Millisecond); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		return

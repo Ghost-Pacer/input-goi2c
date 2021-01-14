@@ -1,7 +1,9 @@
 package transport
 
 import (
+	"fmt"
 	"math/rand"
+	"os"
 	"periph.io/x/conn/v3/physic"
 	"testing"
 	"time"
@@ -19,35 +21,37 @@ func BenchmarkFloat64Transports_Access(b *testing.B) {
 
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
-			done := make(chan struct{})
+			done := make(chan bool)
+			var trans AtomicFloat64Transport
+			var sub *AtomicFloat64Transport = &trans
 
-			pub := bm.transport.(Float64Pub)
-			sub := bm.transport.(Float64Sub)
-
-			go publishRandom(pub, done)
+			go publishRandom(sub, done)
 
 			if err := sub.EnsureReady(time.Second, time.Millisecond); err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, err.Error())
 				return
 			}
 
-			for n := 0; n < b.N; n++ {
-				_ = sub.Access()
-			}
+			func(sub Float64Sub) {
+				for n := 0; n < b.N; n++ {
+					_ = sub.Access()
+				}
+			}(sub)
 
-			close(done)
+			done <- true
 		})
 	}
 }
 
 // NOTE receiver/pointer dynamics are weird, see https://play.golang.org/p/0Y0nuxEohuP
-func publishRandom(transport Float64Pub, done chan struct{}) {
-	ticker := time.NewTicker((physic.KiloHertz).Period())
+func publishRandom(transport *AtomicFloat64Transport, done chan bool) {
+	ticker := time.NewTicker((10 * physic.KiloHertz).Period())
 	for {
 		select {
 		case <-ticker.C:
 			transport.Update(rand.Float64())
 			// fmt.Println("updated")
-		case _, _ = <-done:
+		case <-done:
 			// entered when done is closed
 			return
 		}
