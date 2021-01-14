@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"errors"
 	"sync"
 	"time"
 )
@@ -31,8 +30,9 @@ type MutexValueTypeTransport struct {
 	ready   chan bool
 }
 
-func (mvt *MutexValueTypeTransport) EnsureReady(timeout time.Duration) error {
-	return errors.New("cannot EnsureReady on a MutexValueTypeTransport!")
+func (mvt *MutexValueTypeTransport) EnsureReady(timeout time.Duration, interval time.Duration) error {
+	// return errors.New("cannot EnsureReady on a MutexValueTypeTransport!")
+	return nil
 }
 
 func (mvt *MutexValueTypeTransport) Access() ValueType {

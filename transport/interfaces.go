@@ -25,3 +25,8 @@ type ValueTypePub interface {
 	Update(ValueType)
 	UpdateTimed(ValueType, time.Time)
 }
+
+type ValueTypeTransport interface {
+	ValueTypePub
+	ValueTypeSub
+}
