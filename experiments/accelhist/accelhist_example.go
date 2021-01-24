@@ -1,7 +1,7 @@
-package nearsight
+package accelhist
 
 import (
-	"github.com/Ghost-Pacer/input-goi2c/nearsight/cow"
+	"github.com/Ghost-Pacer/input-goi2c/pkg/nearsight"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/num/quat"
 	"gonum.org/v1/gonum/spatial/r3"
@@ -9,9 +9,9 @@ import (
 
 const AccelHistLength = 50
 
-var AccelHist *cow.MatVecDenseCircularQueue = cow.NewMatVecDenseCircularQueue(AccelHistLength)
+var _ nearsight.MatVecDenseStack = nearsight.NewMatVecDenseStack(AccelHistLength)
 
-func UpdateAccelHist(AccelHist *cow.MatVecDenseCircularQueue, quat quat.Number, linaccel r3.Vec) {
+func UpdateAccelHist(AccelHist nearsight.MatVecDenseStack, quat quat.Number, linaccel r3.Vec) {
 	newAccelEntry := mat.NewVecDense(3, []float64{
 		quat.Real*linaccel.Y - quat.Kmag*linaccel.Z + quat.Jmag*linaccel.X,
 		quat.Real*linaccel.Z - quat.Imag*linaccel.X + quat.Kmag*linaccel.Y,
@@ -20,6 +20,6 @@ func UpdateAccelHist(AccelHist *cow.MatVecDenseCircularQueue, quat quat.Number, 
 	AccelHist.Push(*newAccelEntry)
 }
 
-func UseAccelHist(AccelHist *cow.MatVecDenseCircularQueue) {
-	// AccelHist is just a pointer to a slice but also has convenience methods defined on MatVecDenseRing
+func UseAccelHist(AccelHist nearsight.MatVecDenseStack) {
+	_ = AccelHist
 }

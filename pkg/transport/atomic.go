@@ -6,14 +6,15 @@ import (
 	"time"
 )
 
-//go:generate genny -in=$GOFILE -out=gen-$GOFILE gen "ValueType=float64,r3.Vec,quat.Number"
+//go:generate genny -in=$GOFILE -out=$GOFILE.gen.go gen "ValueType=float64,r3.Vec,quat.Number"
 
 // Lockless ValueType transport using sync/atomic.Value.
 type AtomicValueTypeTransport struct {
 	atom atomic.Value // of ValueType
 }
 
-func NewAtomicValueTypeTransport() *AtomicValueTypeTransport {
+//goland:noinspection GoUnusedExportedFunction
+func NewAtomicValueType() *AtomicValueTypeTransport {
 	return &AtomicValueTypeTransport{}
 }
 

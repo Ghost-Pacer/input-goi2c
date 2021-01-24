@@ -1,3 +1,4 @@
+// Package bno055 is a periph.io driver for the Bosch BNO055 IMU.
 package bno055
 
 import (

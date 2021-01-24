@@ -2,13 +2,13 @@ package transport
 
 import "time"
 
-//go:generate genny -in=$GOFILE -out=gen-$GOFILE gen "ValueType=float64,r3.Vec,quat.Number"
+//go:generate genny -in=$GOFILE -out=$GOFILE.gen.go gen "ValueType=float64,r3.Vec,quat.Number"
 
-func (avt *AtomicValueTypeTransport) AsPub() *AtomicValueTypePub {
+func (avt *AtomicValueTypeTransport) PubView() *AtomicValueTypePub {
 	return &AtomicValueTypePub{avt}
 }
 
-func (avt *AtomicValueTypeTransport) AsSub() *AtomicValueTypeSub {
+func (avt *AtomicValueTypeTransport) SubView() *AtomicValueTypeSub {
 	return &AtomicValueTypeSub{avt}
 }
 

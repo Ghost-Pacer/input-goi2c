@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/Ghost-Pacer/input-goi2c/bno055"
+	"github.com/Ghost-Pacer/input-goi2c/pkg/bno055"
 	"github.com/go-zeromq/zmq4"
 	"log"
 	"os"
