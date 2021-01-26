@@ -1,100 +1,152 @@
 package transport
 
 import (
-	"fmt"
 	"math/rand"
-	"os"
-	"periph.io/x/conn/v3/physic"
 	"testing"
 	"time"
 )
 
-func BenchmarkAtomicFloat64_PubSub_Access(b *testing.B) {
-	trans := NewAtomicFloat64()
-	done := make(chan bool)
-	pub := trans.PubView()
-	sub := trans.SubView()
+// https://godbolt.org/z/8r8dqz for messing around with static vs dynamic dispatch
+// https://play.golang.org/p/0Y0nuxEohuP for weird pointer-receiver interactions
 
-	go publishRandomPubSub(pub, done)
-	if err := sub.EnsureReady(time.Second, time.Millisecond); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err.Error())
-		return
-	}
-	for n := 0; n < b.N; n++ {
-		_ = sub.Access()
-		//fmt.Println("accessed")
-	}
-	done <- true
-}
+func BenchmarkAtomicFloat64_Access_Dynamic(b *testing.B) {
+	transport := new(AtomicFloat64Transport)
+	var pub Float64Pub = transport
+	var sub Float64Sub = transport
 
-// NOTE receiver/pointer dynamics are weird, see https://play.golang.org/p/0Y0nuxEohuP
-func publishRandomPubSub(pub *AtomicFloat64Pub, done chan bool) {
-	ticker := time.NewTicker(100 * time.Microsecond)
-	for {
-		select {
-		case <-ticker.C:
-			pub.Update(rand.Float64())
-			// fmt.Println("updated")
-		case <-done:
-			// entered when done is closed
-			return
-		}
-	}
-}
+	done := make(chan struct{})
+	defer close(done)
 
-func BenchmarkAtomicFloat64_Transport_Access(b *testing.B) {
-	var intensityTransport AtomicFloat64Transport
-	done := make(chan bool)
-
-	go publishRandomTransport(&intensityTransport, done)
-	if err := intensityTransport.EnsureReady(time.Second, time.Millisecond); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err.Error())
-		return
-	}
-	for n := 0; n < b.N; n++ {
-		_ = intensityTransport.Access()
-		//fmt.Println("accessed")
-	}
-	done <- true
-}
-
-// NOTE receiver/pointer dynamics are weird, see https://play.golang.org/p/0Y0nuxEohuP
-func publishRandomTransport(transport *AtomicFloat64Transport, done chan bool) {
-	ticker := time.NewTicker(100 * time.Microsecond)
-	for {
-		select {
-		case <-ticker.C:
-			transport.Update(rand.Float64())
-			// fmt.Println("updated")
-		case <-done:
-			// entered when done is closed
-			return
-		}
-	}
-}
-
-// https://godbolt.org/z/8r8dqz
-
-func TestAtomicFloat64Transport_Access(t *testing.T) {
-	var intensityTransport AtomicFloat64Transport
-	done := make(chan bool)
 	go func() {
-		// publisher
-		ticker := time.NewTicker((10 * physic.KiloHertz).Period())
+		ticker := time.NewTicker(100 * time.Microsecond)
+		defer ticker.Stop()
+
 		for {
 			select {
-			case <-ticker.C:
-				intensityTransport.Update(rand.Float64())
 			case <-done:
 				return
+			case <-ticker.C:
+				pub.Update(rand.Float64())
 			}
 		}
 	}()
-	if err := intensityTransport.EnsureReady(time.Second, time.Millisecond); err != nil {
-		t.Error(err)
+	if err := sub.EnsureReady(time.Second, time.Millisecond); err != nil {
+		b.Fatal(err)
+		return
 	}
-	for n := 0; n < 100; n++ {
-		_ = intensityTransport.Access()
+
+	for n := 0; n < b.N; n++ {
+		_ = sub.Access()
 	}
-	done <- true
+}
+
+func BenchmarkAtomicFloat64_Access_Static(b *testing.B) {
+	transport := new(AtomicFloat64Transport)
+	pub := transport.PubView()
+	sub := transport.SubView()
+
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		ticker := time.NewTicker(100 * time.Microsecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				pub.Update(rand.Float64())
+			}
+		}
+	}()
+
+	if err := sub.EnsureReady(time.Second, time.Millisecond); err != nil {
+		b.Fatal(err)
+		return
+	}
+
+	for n := 0; n < b.N; n++ {
+		_ = sub.Access()
+	}
+}
+
+func BenchmarkAtomicFloat64_Access_Bare(b *testing.B) {
+	transport := new(AtomicFloat64Transport)
+
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		ticker := time.NewTicker(100 * time.Microsecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				transport.Update(rand.Float64())
+			}
+		}
+	}()
+
+	if err := transport.EnsureReady(time.Second, time.Millisecond); err != nil {
+		b.Fatal(err)
+		return
+	}
+
+	for n := 0; n < b.N; n++ {
+		_ = transport.Access()
+	}
+}
+
+func TestAtomicGated(t *testing.T) {
+	tests := []struct {
+		name        string
+		cycleWrites int
+		cycleReads  int
+	}{
+		{"Interleaved", 1, 1},
+		{"Slow Publisher", 1, 5},
+		{"Slow Subscriber", 5, 1},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			transport := new(AtomicIntTransport)
+			gate := make(chan struct{})
+			defer close(gate)
+
+			// set up publisher
+			go func() {
+				var pubCount int
+				for range gate {
+					// send cycleWrites new values every time the gate is released
+					for i := 0; i < test.cycleWrites; i++ {
+						transport.Update(pubCount)
+						pubCount++
+					}
+				}
+			}()
+
+			// prime and verify EnsureReady
+			gate <- struct{}{}
+			if err := transport.EnsureReady(time.Second, time.Millisecond); err != nil {
+				t.Fatal(err)
+				return
+			}
+
+			for cycle := 0; cycle < 100; cycle++ {
+				targetValue := cycle*test.cycleWrites + (test.cycleWrites - 1)
+				for i := 0; i < test.cycleReads; i++ {
+					if v := transport.Access(); v != targetValue {
+						t.Errorf("expected publisher to be at %v but actually got %v", targetValue, v)
+					}
+				}
+
+				gate <- struct{}{}
+				// give time for publisher to receive and act on gate release
+				time.Sleep(10 * time.Microsecond)
+			}
+		})
+	}
 }

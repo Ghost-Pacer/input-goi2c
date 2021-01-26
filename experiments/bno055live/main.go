@@ -35,9 +35,9 @@ func mainImpl() error {
 	if err := socket.Listen(*SocketEndpoint); err != nil {
 		return err
 	}
-	if err := socket.SetOption("CONFLATE", true); err != nil {
+	/*if err := socket.SetOption("CONFLATE", true); err != nil {
 		return err
-	}
+	}*/
 	log.Println("goczmq: listening on", *SocketEndpoint)
 
 	if _, err := host.Init(); err != nil {
