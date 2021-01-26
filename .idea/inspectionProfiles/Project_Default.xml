@@ -24,8 +24,10 @@
         <method importPath="periph.io/x/conn/v3/i2c" receiver="BusCloser" name="Close" />
         <method importPath="github.com/Ghost-Pacer/input-goi2c/bno055" receiver="*Dev" name="Halt" />
         <method importPath="github.com/go-zeromq/zmq4" receiver="Socket" name="Close" />
+        <method importPath="github.com/Ghost-Pacer/input-goi2c/pkg/bno055" receiver="*Dev" name="Halt" />
       </methods>
     </inspection_tool>
+    <inspection_tool class="GoUnusedExportedFunction" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>

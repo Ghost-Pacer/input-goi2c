@@ -1,10 +1,10 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"github.com/Ghost-Pacer/input-goi2c/pkg/bno055"
 	"github.com/go-zeromq/zmq4"
+	"gopkg.in/tomb.v2"
 	"log"
 	"os"
 	"os/signal"
@@ -27,8 +27,11 @@ func printv(vals ...interface{}) {
 }
 
 func mainImpl() error {
-	socket := zmq4.NewPub(context.Background())
+	mainTomb := new(tomb.Tomb)
+
+	socket := zmq4.NewPub(mainTomb.Context(nil))
 	defer socket.Close()
+
 	if err := socket.Listen(*SocketEndpoint); err != nil {
 		return err
 	}
@@ -56,18 +59,27 @@ func mainImpl() error {
 	}
 	defer bno.Halt()
 
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
+
+	mainTomb.Go(func() error {
+		return doWork(mainTomb, socket, bno)
+	})
+
+	caughtSignal := <-signalChannel
+	log.Println("Caught", caughtSignal, "shutting down...")
+	mainTomb.Kill(nil)
+	return mainTomb.Wait()
+}
+
+func doWork(tomb *tomb.Tomb, socket zmq4.Socket, bno *bno055.Dev) error {
 	ticker := time.NewTicker(*RefreshInterval)
 	defer ticker.Stop()
 
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-	var caughtSignal os.Signal
-
-Main:
 	for {
 		select {
-		case caughtSignal = <-signals:
-			break Main
+		case <-tomb.Dying():
+			return nil
 		case <-ticker.C:
 			printv("ticked")
 
@@ -94,12 +106,8 @@ Main:
 				return err
 			}
 			printv("\tgot lin", lin)
-
 		}
 	}
-
-	log.Println("Caught", caughtSignal, "shutting down...")
-	return nil
 }
 
 func main() {
