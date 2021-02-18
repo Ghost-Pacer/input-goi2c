@@ -14,9 +14,9 @@ import (
 )
 
 // Lockless float64 transport using sync/atomic.Value. Usable as zero value. Needs pointer semantics.
-// NB using dynamic dispatch Pub/Sub interfaces slows down operations by about 450% @ AMD64
-// over using static dispatch AtomicPub/AtomicSub, which in turn are about 20% @ AMD64 slower
-// than bare references to AtomicTransport.
+// Performance note: using dynamic dispatch Pub/Sub interfaces slows down operations by about 450% @ AMD64
+// over using static dispatch AtomicPub/AtomicSub, which in turn are about 20% @ AMD64 slower than
+// bare references to AtomicTransport.
 type AtomicFloat64Transport struct {
 	atom atomic.Value // of float64
 }
@@ -37,25 +37,25 @@ func (avt *AtomicFloat64Transport) EnsureReady(timeout time.Duration, interval t
 }
 
 func (avt *AtomicFloat64Transport) Access() float64 {
-	return avt.atom.Load().(TimedFloat64).value
+	return avt.atom.Load().(TimedFloat64).Value
 }
 
 func (avt *AtomicFloat64Transport) AccessTimed() (float64, EventTimings) {
 	timedValue := avt.atom.Load().(TimedFloat64)
-	timedValue.timings.Accessed = time.Now()
-	return timedValue.value, timedValue.timings
+	timedValue.Timings.Accessed = time.Now()
+	return timedValue.Value, timedValue.Timings
 }
 
 func (avt *AtomicFloat64Transport) Update(value float64) {
 	avt.atom.Store(TimedFloat64{
-		value: value,
+		Value: value,
 	})
 }
 
 func (avt *AtomicFloat64Transport) UpdateTimed(value float64, sourced time.Time) {
 	avt.atom.Store(TimedFloat64{
-		value: value,
-		timings: EventTimings{
+		Value: value,
+		Timings: EventTimings{
 			Sourced: sourced,
 			Updated: time.Now(),
 		},
@@ -101,9 +101,9 @@ func (avs *AtomicFloat64Sub) AccessTimed() (float64, EventTimings) {
 }
 
 // Lockless int transport using sync/atomic.Value. Usable as zero value. Needs pointer semantics.
-// NB using dynamic dispatch Pub/Sub interfaces slows down operations by about 450% @ AMD64
-// over using static dispatch AtomicPub/AtomicSub, which in turn are about 20% @ AMD64 slower
-// than bare references to AtomicTransport.
+// Performance note: using dynamic dispatch Pub/Sub interfaces slows down operations by about 450% @ AMD64
+// over using static dispatch AtomicPub/AtomicSub, which in turn are about 20% @ AMD64 slower than
+// bare references to AtomicTransport.
 type AtomicIntTransport struct {
 	atom atomic.Value // of int
 }
@@ -124,25 +124,25 @@ func (avt *AtomicIntTransport) EnsureReady(timeout time.Duration, interval time.
 }
 
 func (avt *AtomicIntTransport) Access() int {
-	return avt.atom.Load().(TimedInt).value
+	return avt.atom.Load().(TimedInt).Value
 }
 
 func (avt *AtomicIntTransport) AccessTimed() (int, EventTimings) {
 	timedValue := avt.atom.Load().(TimedInt)
-	timedValue.timings.Accessed = time.Now()
-	return timedValue.value, timedValue.timings
+	timedValue.Timings.Accessed = time.Now()
+	return timedValue.Value, timedValue.Timings
 }
 
 func (avt *AtomicIntTransport) Update(value int) {
 	avt.atom.Store(TimedInt{
-		value: value,
+		Value: value,
 	})
 }
 
 func (avt *AtomicIntTransport) UpdateTimed(value int, sourced time.Time) {
 	avt.atom.Store(TimedInt{
-		value: value,
-		timings: EventTimings{
+		Value: value,
+		Timings: EventTimings{
 			Sourced: sourced,
 			Updated: time.Now(),
 		},
@@ -188,9 +188,9 @@ func (avs *AtomicIntSub) AccessTimed() (int, EventTimings) {
 }
 
 // Lockless r3.Vec transport using sync/atomic.Value. Usable as zero value. Needs pointer semantics.
-// NB using dynamic dispatch Pub/Sub interfaces slows down operations by about 450% @ AMD64
-// over using static dispatch AtomicPub/AtomicSub, which in turn are about 20% @ AMD64 slower
-// than bare references to AtomicTransport.
+// Performance note: using dynamic dispatch Pub/Sub interfaces slows down operations by about 450% @ AMD64
+// over using static dispatch AtomicPub/AtomicSub, which in turn are about 20% @ AMD64 slower than
+// bare references to AtomicTransport.
 type AtomicR3VecTransport struct {
 	atom atomic.Value // of r3.Vec
 }
@@ -211,25 +211,25 @@ func (avt *AtomicR3VecTransport) EnsureReady(timeout time.Duration, interval tim
 }
 
 func (avt *AtomicR3VecTransport) Access() r3.Vec {
-	return avt.atom.Load().(TimedR3Vec).value
+	return avt.atom.Load().(TimedR3Vec).Value
 }
 
 func (avt *AtomicR3VecTransport) AccessTimed() (r3.Vec, EventTimings) {
 	timedValue := avt.atom.Load().(TimedR3Vec)
-	timedValue.timings.Accessed = time.Now()
-	return timedValue.value, timedValue.timings
+	timedValue.Timings.Accessed = time.Now()
+	return timedValue.Value, timedValue.Timings
 }
 
 func (avt *AtomicR3VecTransport) Update(value r3.Vec) {
 	avt.atom.Store(TimedR3Vec{
-		value: value,
+		Value: value,
 	})
 }
 
 func (avt *AtomicR3VecTransport) UpdateTimed(value r3.Vec, sourced time.Time) {
 	avt.atom.Store(TimedR3Vec{
-		value: value,
-		timings: EventTimings{
+		Value: value,
+		Timings: EventTimings{
 			Sourced: sourced,
 			Updated: time.Now(),
 		},
@@ -275,9 +275,9 @@ func (avs *AtomicR3VecSub) AccessTimed() (r3.Vec, EventTimings) {
 }
 
 // Lockless quat.Number transport using sync/atomic.Value. Usable as zero value. Needs pointer semantics.
-// NB using dynamic dispatch Pub/Sub interfaces slows down operations by about 450% @ AMD64
-// over using static dispatch AtomicPub/AtomicSub, which in turn are about 20% @ AMD64 slower
-// than bare references to AtomicTransport.
+// Performance note: using dynamic dispatch Pub/Sub interfaces slows down operations by about 450% @ AMD64
+// over using static dispatch AtomicPub/AtomicSub, which in turn are about 20% @ AMD64 slower than
+// bare references to AtomicTransport.
 type AtomicQuatNumberTransport struct {
 	atom atomic.Value // of quat.Number
 }
@@ -298,25 +298,25 @@ func (avt *AtomicQuatNumberTransport) EnsureReady(timeout time.Duration, interva
 }
 
 func (avt *AtomicQuatNumberTransport) Access() quat.Number {
-	return avt.atom.Load().(TimedQuatNumber).value
+	return avt.atom.Load().(TimedQuatNumber).Value
 }
 
 func (avt *AtomicQuatNumberTransport) AccessTimed() (quat.Number, EventTimings) {
 	timedValue := avt.atom.Load().(TimedQuatNumber)
-	timedValue.timings.Accessed = time.Now()
-	return timedValue.value, timedValue.timings
+	timedValue.Timings.Accessed = time.Now()
+	return timedValue.Value, timedValue.Timings
 }
 
 func (avt *AtomicQuatNumberTransport) Update(value quat.Number) {
 	avt.atom.Store(TimedQuatNumber{
-		value: value,
+		Value: value,
 	})
 }
 
 func (avt *AtomicQuatNumberTransport) UpdateTimed(value quat.Number, sourced time.Time) {
 	avt.atom.Store(TimedQuatNumber{
-		value: value,
-		timings: EventTimings{
+		Value: value,
+		Timings: EventTimings{
 			Sourced: sourced,
 			Updated: time.Now(),
 		},

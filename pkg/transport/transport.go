@@ -4,15 +4,16 @@ package transport
 //go:generate genny -in=$GOFILE -out=$GOFILE.gen.go gen "ValueType=float64,int,r3.Vec,quat.Number"
 
 import (
-	"github.com/cheekybits/genny/generic"
 	"time"
+
+	"github.com/cheekybits/genny/generic"
 )
 
 type ValueType generic.Type
 
 type TimedValueType struct {
-	value   ValueType
-	timings EventTimings
+	Value   ValueType
+	Timings EventTimings
 }
 
 // Interface for publishers; analogue of chan<- ValueType

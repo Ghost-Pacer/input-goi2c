@@ -32,25 +32,25 @@ func (avt *AtomicValueTypeTransport) EnsureReady(timeout time.Duration, interval
 }
 
 func (avt *AtomicValueTypeTransport) Access() ValueType {
-	return avt.atom.Load().(TimedValueType).value
+	return avt.atom.Load().(TimedValueType).Value
 }
 
 func (avt *AtomicValueTypeTransport) AccessTimed() (ValueType, EventTimings) {
 	timedValue := avt.atom.Load().(TimedValueType)
-	timedValue.timings.Accessed = time.Now()
-	return timedValue.value, timedValue.timings
+	timedValue.Timings.Accessed = time.Now()
+	return timedValue.Value, timedValue.Timings
 }
 
 func (avt *AtomicValueTypeTransport) Update(value ValueType) {
 	avt.atom.Store(TimedValueType{
-		value: value,
+		Value: value,
 	})
 }
 
 func (avt *AtomicValueTypeTransport) UpdateTimed(value ValueType, sourced time.Time) {
 	avt.atom.Store(TimedValueType{
-		value: value,
-		timings: EventTimings{
+		Value: value,
+		Timings: EventTimings{
 			Sourced: sourced,
 			Updated: time.Now(),
 		},

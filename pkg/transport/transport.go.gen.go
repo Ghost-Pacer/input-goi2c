@@ -13,8 +13,8 @@ import (
 )
 
 type TimedFloat64 struct {
-	value   float64
-	timings EventTimings
+	Value   float64
+	Timings EventTimings
 }
 
 // Interface for publishers; analogue of chan<- float64
@@ -36,8 +36,8 @@ var _ Float64Sub = (*AtomicFloat64Transport)(nil)
 // Package transport implements high-performance abstractions for sharing data between goroutines.
 
 type TimedInt struct {
-	value   int
-	timings EventTimings
+	Value   int
+	Timings EventTimings
 }
 
 // Interface for publishers; analogue of chan<- int
@@ -59,8 +59,8 @@ var _ IntSub = (*AtomicIntTransport)(nil)
 // Package transport implements high-performance abstractions for sharing data between goroutines.
 
 type TimedR3Vec struct {
-	value   r3.Vec
-	timings EventTimings
+	Value   r3.Vec
+	Timings EventTimings
 }
 
 // Interface for publishers; analogue of chan<- r3.Vec
@@ -82,8 +82,8 @@ var _ R3VecSub = (*AtomicR3VecTransport)(nil)
 // Package transport implements high-performance abstractions for sharing data between goroutines.
 
 type TimedQuatNumber struct {
-	value   quat.Number
-	timings EventTimings
+	Value   quat.Number
+	Timings EventTimings
 }
 
 // Interface for publishers; analogue of chan<- quat.Number
