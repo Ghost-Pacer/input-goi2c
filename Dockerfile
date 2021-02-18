@@ -1,11 +1,5 @@
-FROM golang:1.15-buster
-RUN apt-get install git
-WORKDIR /app
-
+FROM golang:1.15
+WORKDIR /project
+RUN go get github.com/cheekybits/genny
 COPY . .
-
-RUN go build helloworld.go
-
-EXPOSE 51101
-
-CMD ["./app/helloworld"]
+CMD bash

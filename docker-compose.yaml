@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+    input-goi2c:
+        container_name: input-goi2c
+        build: .
+        volumes:
+            - ./:/project
+        command: /bin/bash
+        tty: true
+        stdin_open: true
