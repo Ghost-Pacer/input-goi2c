@@ -1,7 +1,6 @@
 package bno055
 
 import (
-	"log"
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/host/v3"
 	"testing"
@@ -11,7 +10,7 @@ func BenchmarkCycle(b *testing.B) {
 	if _, err := host.Init(); err != nil {
 		b.Fatal(err)
 	}
-	log.Println("periph: initted host")
+	b.Log("periph: initted host")
 
 	bus, err := i2creg.Open("2")
 	if err != nil {
