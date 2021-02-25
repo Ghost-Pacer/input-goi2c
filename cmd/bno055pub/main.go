@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	pb "github.com/Ghost-Pacer/input-goi2c/experiments/bno055live/proto"
+	pb "github.com/Ghost-Pacer/input-goi2c/cmd/bno055pub/proto"
 	"github.com/Ghost-Pacer/input-goi2c/pkg/bno055"
 	"github.com/go-zeromq/zmq4"
 	"github.com/golang/protobuf/ptypes"
@@ -18,7 +18,7 @@ import (
 )
 
 // protoc invocation:
-// C:\Users\Jensen Turner\GitProjects\input-goi2c\experiments\bno055live>protoc --go_out=. --go_opt=module=github.com/Ghost-Pacer/input-goi2c/experiments/bno055live --proto_path=..\..\..\protocols\ghostpacer\input i2c_devices.proto
+// C:\Users\Jensen Turner\GitProjects\input-goi2c\experiments\bno055exp>protoc --go_out=. --go_opt=module=github.com/Ghost-Pacer/input-goi2c/experiments/bno055exp --proto_path=..\..\..\protocols\ghostpacer\input i2c_devices.proto
 
 var I2CBus = flag.String("b", "2", "I2C bus")
 var I2CAddr = flag.Int("a", 0x28, "I2C address")
