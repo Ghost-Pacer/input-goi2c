@@ -2,8 +2,11 @@ package main
 
 import (
 	"flag"
+	pb "github.com/Ghost-Pacer/input-goi2c/experiments/bno055live/proto"
 	"github.com/Ghost-Pacer/input-goi2c/pkg/bno055"
 	"github.com/go-zeromq/zmq4"
+	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/proto"
 	"gopkg.in/tomb.v2"
 	"log"
 	"os"
@@ -13,6 +16,9 @@ import (
 	"syscall"
 	"time"
 )
+
+// protoc invocation:
+// C:\Users\Jensen Turner\GitProjects\input-goi2c\experiments\bno055live>protoc --go_out=. --go_opt=module=github.com/Ghost-Pacer/input-goi2c/experiments/bno055live --proto_path=..\..\..\protocols\ghostpacer\input i2c_devices.proto
 
 var I2CBus = flag.String("b", "2", "I2C bus")
 var I2CAddr = flag.Int("a", 0x28, "I2C address")
@@ -26,7 +32,7 @@ func printv(vals ...interface{}) {
 	}
 }
 
-func mainImpl() error {
+func run() error {
 	mainTomb := new(tomb.Tomb)
 
 	socket := zmq4.NewPub(mainTomb.Context(nil))
@@ -38,22 +44,22 @@ func mainImpl() error {
 	/*if err := socket.SetOption("CONFLATE", true); err != nil {
 		return err
 	}*/
-	log.Println("goczmq: listening on", *SocketEndpoint)
+	log.Println("zmq4: listening on", *SocketEndpoint)
 
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	log.Println("Periph: initted host")
+	log.Println("periph: initted host")
 
 	bus, err := i2creg.Open(*I2CBus)
 	if err != nil {
 		return err
 	}
-	log.Println("Periph: initted bus")
+	log.Println("periph: initted bus")
 	defer bus.Close()
 
 	bno, err := bno055.New(bus, uint16(*I2CAddr))
-	log.Println("GP: initted bno055")
+	log.Println("bno055: initted bno055")
 	if err != nil {
 		return err
 	}
@@ -83,11 +89,7 @@ func doWork(tomb *tomb.Tomb, socket zmq4.Socket, bno *bno055.Dev) error {
 		case <-ticker.C:
 			printv("ticked")
 
-			start := time.Now()
-			if err := socket.Send(zmq4.NewMsg([]byte("Hello World"))); err != nil {
-				return err
-			}
-			printv("\tsent on socket, raw time on zmq4 was", time.Since(start))
+			sourced := ptypes.TimestampNow()
 
 			quat, err := bno.ReadQuat()
 			if err != nil {
@@ -106,6 +108,33 @@ func doWork(tomb *tomb.Tomb, socket zmq4.Socket, bno *bno055.Dev) error {
 				return err
 			}
 			printv("\tgot lin", lin)
+
+			snapshot := &pb.IMUSnapshot{
+				EventTimings: &pb.InputEventTimings{
+					Sourced: sourced,
+					Updated: ptypes.TimestampNow(),
+				},
+				OrientationQuaternion: &pb.Vec4{
+					W: quat[0],
+					X: quat[1],
+					Y: quat[2],
+					Z: quat[3],
+				},
+				LinearAcceleration: &pb.Vec3{
+					X: lin[0],
+					Y: lin[1],
+					Z: lin[2],
+				},
+			}
+			out, err := proto.Marshal(snapshot)
+			if err != nil {
+				return err
+			}
+
+			if err := socket.Send(zmq4.NewMsg(out)); err != nil {
+				return err
+			}
+			printv("\tsent on socket")
 		}
 	}
 }
@@ -113,7 +142,7 @@ func doWork(tomb *tomb.Tomb, socket zmq4.Socket, bno *bno055.Dev) error {
 func main() {
 	flag.Parse()
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
-	if err := mainImpl(); err != nil {
+	if err := run(); err != nil {
 		log.Fatal(err)
 	}
 }
